@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 
 def read_vgsales_csv():
     """Read the vgsales.csv file and return its contents as a pandas DataFrame.
@@ -9,7 +10,9 @@ def read_vgsales_csv():
     Returns:
         pandas.DataFrame: DataFrame containing the CSV data.
     """
-    return pd.read_csv('Data/vgsales.csv')
+    dir_path = os.path.dirname(__file__)  # this gets the folder containing data.py
+    file_path = os.path.join(dir_path, 'vgsales.csv')
+    return pd.read_csv(file_path)
 
 def clean_vgsales_data(df):
     """Clean and process the vgsales DataFrame for use in machine learning.
