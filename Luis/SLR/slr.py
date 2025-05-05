@@ -7,11 +7,10 @@ class SimpleLinearRegression:
         self.weights = None
         
     def fit(self, X, y):
-        # Ensure inputs are numpy arrays
         X = np.array(X)
         y = np.array(y)
         
-        # Add bias term (intercept)
+        # Add bias term 
         X_b = np.c_[np.ones((X.shape[0], 1)), X]
         
         # Normal equation: θ = (X^T * X)^(-1) * X^T * y

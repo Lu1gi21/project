@@ -1,14 +1,15 @@
 import numpy as np
 import sys
 import os
+import matplotlib.pyplot as plt
 
 # Add project directory to path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import models and data utilities
 from Luis.SLR.slr import SimpleLinearRegression
-from Luis.Gradient_Descent.gradientDescent import GradientDescentRegression
 from Data.data import load_clean_vgsales, get_numeric_vgsales_columns
+from Luis.ANN.ann import SimpleNeuralNetwork
 
 def train_test_split(X, y, test_size=0.2, random_state=None):
     """
@@ -64,9 +65,103 @@ def cooks_distance(X, y, model):
     cooks_d = (residuals ** 2) / (2 * mse) * (leverage / (1 - leverage) ** 2)
     return cooks_d
 
+def plot_predictions(y_true, y_pred, title, filename=None):
+    """
+    Plot actual vs predicted values for regression.
+    """
+    plt.figure(figsize=(8, 6))
+    plt.scatter(y_true, y_pred, alpha=0.6, label='Predictions')
+    plt.plot([y_true.min(), y_true.max()], [y_true.min(), y_true.max()], 'r--', label='Perfect prediction')
+    plt.xlabel('Actual Global Sales')
+    plt.ylabel('Predicted Global Sales')
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    # Comment: Save plot to the plots directory
+    if filename:
+        plt.savefig(f"Luis/plots/{filename}")
+    # plt.show()
+    plt.close()
+
+def plot_slr_fit(X, y, model, filename=None):
+    """
+    Plot data points and the regression line for SLR.
+    """
+    plt.figure(figsize=(8, 6))
+    plt.scatter(X, y, color='blue', alpha=0.5, label='Data')
+    plt.plot(X, model.predict(X), color='red', label='SLR Fit')
+    plt.xlabel('NA Sales')
+    plt.ylabel('Global Sales')
+    plt.title('Simple Linear Regression Fit')
+    plt.legend()
+    plt.tight_layout()
+    # Comment: Save plot to the plots directory
+    if filename:
+        plt.savefig(f"Luis/plots/{filename}")
+    # plt.show()
+    plt.close()
+
+def plot_ann_loss(ann_model, filename=None):
+    """
+    Plot the loss curve for the ANN during training.
+    """
+    plt.figure(figsize=(8, 6))
+    plt.plot(ann_model.cost_history)
+    plt.xlabel('Epoch')
+    plt.ylabel('MSE Loss')
+    plt.title('ANN Training Loss Curve')
+    plt.tight_layout()
+    # Comment: Save plot to the plots directory
+    if filename:
+        plt.savefig(f"Luis/plots/{filename}")
+    # plt.show()
+    plt.close()
+
+def plot_feature_importance(weights, feature_names, filename=None):
+    """
+    Plot the absolute value of input-to-hidden weights as feature importance.
+    """
+    importance = np.abs(weights).mean(axis=1)
+    plt.figure(figsize=(8, 6))
+    plt.bar(feature_names, importance)
+    plt.xlabel('Feature')
+    plt.ylabel('Average |Weight|')
+    plt.title('Feature Importance (ANN Input Layer)')
+    plt.tight_layout()
+    # Comment: Save plot to the plots directory
+    if filename:
+        plt.savefig(f"Luis/plots/{filename}")
+    # plt.show()
+    plt.close()
+
+def plot_cooks_distance(cooks_d, threshold=None, filename=None):
+    """
+    Plot Cook's distance for each observation in SLR.
+
+    Args:
+        cooks_d (np.ndarray): Array of Cook's distance values.
+        threshold (float, optional): Threshold for identifying influential points.
+        filename (str, optional): Filename to save the plot.
+    """
+    # Comment: Plot Cook's distance for all points and mark the threshold if provided
+    plt.figure(figsize=(10, 6))
+    plt.stem(np.arange(len(cooks_d)), cooks_d, markerfmt='o', basefmt=" ")
+    if threshold is not None:
+        plt.axhline(y=threshold, color='r', linestyle='--', label=f'Threshold = {threshold:.4f}')
+    plt.xlabel('Observation Index')
+    plt.ylabel("Cook's Distance")
+    plt.title("Cook's Distance for SLR")
+    plt.legend()
+    plt.tight_layout()
+    # Comment: Save plot to the plots directory
+    if filename:
+        plt.savefig(f"Luis/plots/{filename}")
+    # plt.show()
+    plt.close()
+
 def experiment_predict_global_sales():
     """
-    Experiment to predict Global_Sales based on NA_Sales using both regression models.
+    Experiment to predict Global_Sales based on NA_Sales using Simple Linear Regression only.
     """
     # Load and prepare data
     df = load_clean_vgsales()
@@ -74,6 +169,49 @@ def experiment_predict_global_sales():
     
     # Prepare features and target
     X = df_numeric['NA_Sales'].values.reshape(-1, 1)
+    y = df_numeric['Global_Sales'].values
+    
+    # Fit model to all data to compute Cook's distance
+    slr_model_all = SimpleLinearRegression()
+    slr_model_all.fit(X, y)
+    cooks_d = cooks_distance(X, y, slr_model_all)
+
+    # Plot Cook's distance before removing outliers
+    threshold = 4 / len(X)
+    plot_cooks_distance(cooks_d, threshold=threshold, filename="cooks_distance_slr.png")
+
+    # Remove outliers using Cook's distance
+    mask = cooks_d < threshold
+    X = X[mask]
+    y = y[mask]
+    
+    # Split data into training and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # Train Simple Linear Regression model
+    slr_model = SimpleLinearRegression()
+    slr_model.fit(X_train, y_train)
+    slr_score = slr_model.score(X_test, y_test)
+    slr_predictions = slr_model.predict(X_test)
+    
+    print(f"SLR R² score: {slr_score:.4f}")
+    print(f"SLR Coefficients: {slr_model.weights}")
+    # Plot SLR fit and predictions
+    plot_slr_fit(X_test, y_test, slr_model, filename="slr_fit.png")
+    plot_predictions(y_test, slr_predictions, "SLR: Actual vs Predicted Global Sales", filename="slr_actual_vs_predicted.png")
+    # Only print results
+
+def experiment_sales_by_year():
+    """
+    Experiment to predict Global_Sales based on NA_Sales, EU_Sales, JP_Sales, and Other_Sales using a simple ANN.
+    """
+    # Load and prepare data
+    df = load_clean_vgsales()
+    df_numeric = get_numeric_vgsales_columns(df)
+    
+    # Select features
+    feature_cols = ['NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales']
+    X = df_numeric[feature_cols].values
     y = df_numeric['Global_Sales'].values
     
     # Fit model to all data to compute Cook's distance
@@ -89,86 +227,45 @@ def experiment_predict_global_sales():
     
     # Split data into training and test sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    
-    # Train Simple Linear Regression model
-    slr_model = SimpleLinearRegression()
-    slr_model.fit(X_train, y_train)
-    slr_score = slr_model.score(X_test, y_test)
-    slr_predictions = slr_model.predict(X_test)
-    
-    # Train Gradient Descent model
-    gd_model = GradientDescentRegression(learning_rate=0.01, n_iterations=1000)
-    gd_model.fit(X_train, y_train)
-    gd_score = gd_model.score(X_test, y_test)
-    gd_predictions = gd_model.predict(X_test)
-    
-    print(f"SLR R² score: {slr_score:.4f}")
-    print(f"GD R² score: {gd_score:.4f}")
-    print(f"SLR Coefficients: {slr_model.weights}")
-    print(f"GD Coefficients: {gd_model.weights}")
 
+    # Standardize features
+    X_train_mean = X_train.mean(axis=0)
+    X_train_std = X_train.std(axis=0)
+    X_train_scaled = (X_train - X_train_mean) / X_train_std
+    X_test_scaled = (X_test - X_train_mean) / X_train_std
 
-def experiment_sales_by_year():
-    """
-    Experiment to analyze the trend of Global_Sales over Year.
-    """
-    # Load and prepare data
-    df = load_clean_vgsales()
-    df_numeric = get_numeric_vgsales_columns(df)
-    
-    # Group by year and get average global sales
-    yearly_sales = df_numeric.groupby('Year')['Global_Sales'].mean().reset_index()
-    
-    # Also get count of games per year for bubble size
-    yearly_count = df_numeric.groupby('Year').size().reset_index(name='Count')
-    yearly_data = yearly_sales.merge(yearly_count, on='Year')
-    
-    # Prepare features and target
-    X = yearly_data['Year'].values.reshape(-1, 1)
-    y = yearly_data['Global_Sales'].values
-    
-    # Fit model to all data to compute Cook's distance
-    slr_model_all = SimpleLinearRegression()
-    slr_model_all.fit(X, y)
-    cooks_d = cooks_distance(X, y, slr_model_all)
+    # --- ANN Model ---
+    # Comment: Use a simple ANN with 1 hidden layer of 8 neurons
+    input_dim = X_train_scaled.shape[1]
+    output_dim = 1
 
-    # Remove outliers using Cook's distance
-    threshold = 4 / len(X)
-    mask = cooks_d < threshold
-    X = X[mask]
-    y = y[mask]
-    yearly_data = yearly_data[mask]
+    # One hidden layer
+    for hidden_dim in [4, 16, 32, 64]:
+        ann_model = SimpleNeuralNetwork(input_dim, hidden_dim, output_dim, hidden_dim2=None, learning_rate=0.01, n_iterations=1000)
+        ann_model.fit(X_train_scaled, y_train)
+        ann_pred = ann_model.predict(X_test_scaled).flatten()
+        ann_score = 1 - np.sum((ann_pred - y_test) ** 2) / np.sum((y_test - np.mean(y_test)) ** 2)
+        print(f"ANN (1 hidden, {hidden_dim} neurons) R² score: {ann_score:.4f}")
+        # Plot actual vs predicted sales
+        plot_predictions(y_test, ann_pred, f"ANN (1 hidden, {hidden_dim} neurons): Actual vs Predicted Global Sales", filename=f"ann1_hidden{hidden_dim}_actual_vs_predicted.png")
+        # Plot training loss curve
+        plot_ann_loss(ann_model, filename=f"ann1_hidden{hidden_dim}_loss_curve.png")
 
-    # Split data into training and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    yearly_data_train = yearly_data.iloc[X_train.flatten().argsort()]
-    yearly_data_test = yearly_data.iloc[X_test.flatten().argsort()]
-
-    # Train model
-    model = SimpleLinearRegression()
-    model.fit(X_train, y_train)
-    score = model.score(X_test, y_test)
-    predictions = model.predict(X_test)
-
-    # Find peak sales year
-    peak_idx = np.argmax(y_test)
-    peak_year = X_test[peak_idx][0]
-    peak_sales = y_test[peak_idx]
-
-    intercept, slope = model.weights
-    
-    if slope > 0:
-        trend_direction = f"Sales increasing by {slope:.4f}M per year"
-    else:
-        trend_direction = f"Sales decreasing by {abs(slope):.4f}M per year"
-
-    print(f"R² score for predicting Global_Sales trend by Year: {score:.4f}")
-    print(f"Coefficients: {model.weights}")
-    print(f"Peak average sales year: {peak_year:.0f}, with {peak_sales:.4f}M average sales")
+    # Two hidden layers
+    for hidden_dim1, hidden_dim2 in [(16, 8), (32, 16), (64, 32)]:
+        ann_model = SimpleNeuralNetwork(input_dim, hidden_dim1, output_dim, hidden_dim2=hidden_dim2, learning_rate=0.01, n_iterations=1000)
+        ann_model.fit(X_train_scaled, y_train)
+        ann_pred = ann_model.predict(X_test_scaled).flatten()
+        ann_score = 1 - np.sum((ann_pred - y_test) ** 2) / np.sum((y_test - np.mean(y_test)) ** 2)
+        print(f"ANN (2 hidden, {hidden_dim1}-{hidden_dim2} neurons) R² score: {ann_score:.4f}")
+        # Plot actual vs predicted sales
+        plot_predictions(y_test, ann_pred, f"ANN (2 hidden, {hidden_dim1}-{hidden_dim2} neurons): Actual vs Predicted Global Sales", filename=f"ann2_hidden{hidden_dim1}_{hidden_dim2}_actual_vs_predicted.png")
+        # Plot training loss curve
+        plot_ann_loss(ann_model, filename=f"ann2_hidden{hidden_dim1}_{hidden_dim2}_loss_curve.png")
 
 if __name__ == "__main__":
     print("Experiment 1: Predicting Global Sales from NA Sales")
     experiment_predict_global_sales()
     
-    print("\nExperiment 2: Analyzing Sales Trends by Year")
+    print("\nExperiment 2: Analyzing Global Sales by NA, EU, JP, and Other Sales")
     experiment_sales_by_year()
