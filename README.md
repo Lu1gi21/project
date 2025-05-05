@@ -4,6 +4,9 @@
 # run
 
 ```
-python -m Name.Algorythm.filename
+If you have linux:
+python3 experimentX.py
 
+If you have windows:
+python experimentX.py
  ```
