@@ -14,15 +14,6 @@ from Luis.ANN.ann import SimpleNeuralNetwork
 def train_test_split(X, y, test_size=0.2, random_state=None):
     """
     Split arrays or matrices into random train and test subsets.
-
-    Args:
-        X (np.ndarray): Feature array.
-        y (np.ndarray): Target array.
-        test_size (float): Proportion of the dataset to include in the test split (between 0 and 1).
-        random_state (int, optional): Seed for reproducibility.
-
-    Returns:
-        X_train, X_test, y_train, y_test: Split data arrays.
     """
     # Set random seed for reproducibility
     if random_state is not None:
@@ -44,21 +35,13 @@ def train_test_split(X, y, test_size=0.2, random_state=None):
 def cooks_distance(X, y, model):
     """
     Calculate Cook's distance for each observation in a simple linear regression.
-
-    Args:
-        X (np.ndarray): Feature array (n, 1).
-        y (np.ndarray): Target array (n,).
-        model (SimpleLinearRegression): Fitted regression model.
-
-    Returns:
-        np.ndarray: Cook's distance for each observation.
     """
     # Add intercept
     X_b = np.c_[np.ones((X.shape[0], 1)), X]
     y_pred = model.predict(X)
     residuals = y - y_pred
     mse = np.mean(residuals ** 2)
-    # Hat matrix diagonal (leverage)
+    # Hat matrix diagonal
     H = X_b @ np.linalg.inv(X_b.T @ X_b) @ X_b.T
     leverage = np.diag(H)
     # Cook's distance formula
@@ -77,10 +60,8 @@ def plot_predictions(y_true, y_pred, title, filename=None):
     plt.title(title)
     plt.legend()
     plt.tight_layout()
-    # Comment: Save plot to the plots directory
     if filename:
         plt.savefig(f"Luis/plots/{filename}")
-    # plt.show()
     plt.close()
 
 def plot_slr_fit(X, y, model, filename=None):
@@ -95,10 +76,8 @@ def plot_slr_fit(X, y, model, filename=None):
     plt.title('Simple Linear Regression Fit')
     plt.legend()
     plt.tight_layout()
-    # Comment: Save plot to the plots directory
     if filename:
         plt.savefig(f"Luis/plots/{filename}")
-    # plt.show()
     plt.close()
 
 def plot_ann_loss(ann_model, filename=None):
@@ -111,10 +90,8 @@ def plot_ann_loss(ann_model, filename=None):
     plt.ylabel('MSE Loss')
     plt.title('ANN Training Loss Curve')
     plt.tight_layout()
-    # Comment: Save plot to the plots directory
     if filename:
         plt.savefig(f"Luis/plots/{filename}")
-    # plt.show()
     plt.close()
 
 def plot_feature_importance(weights, feature_names, filename=None):
@@ -128,10 +105,8 @@ def plot_feature_importance(weights, feature_names, filename=None):
     plt.ylabel('Average |Weight|')
     plt.title('Feature Importance (ANN Input Layer)')
     plt.tight_layout()
-    # Comment: Save plot to the plots directory
     if filename:
         plt.savefig(f"Luis/plots/{filename}")
-    # plt.show()
     plt.close()
 
 def plot_cooks_distance(cooks_d, threshold=None, filename=None):
@@ -143,7 +118,6 @@ def plot_cooks_distance(cooks_d, threshold=None, filename=None):
         threshold (float, optional): Threshold for identifying influential points.
         filename (str, optional): Filename to save the plot.
     """
-    # Comment: Plot Cook's distance for all points and mark the threshold if provided
     plt.figure(figsize=(10, 6))
     plt.stem(np.arange(len(cooks_d)), cooks_d, markerfmt='o', basefmt=" ")
     if threshold is not None:
@@ -153,10 +127,8 @@ def plot_cooks_distance(cooks_d, threshold=None, filename=None):
     plt.title("Cook's Distance for SLR")
     plt.legend()
     plt.tight_layout()
-    # Comment: Save plot to the plots directory
     if filename:
         plt.savefig(f"Luis/plots/{filename}")
-    # plt.show()
     plt.close()
 
 def experiment_predict_global_sales():
@@ -167,20 +139,20 @@ def experiment_predict_global_sales():
     df = load_clean_vgsales()
     df_numeric = get_numeric_vgsales_columns(df)
     
-    # Prepare features and target
+    # Prepare features 
     X = df_numeric['NA_Sales'].values.reshape(-1, 1)
     y = df_numeric['Global_Sales'].values
     
-    # Fit model to all data to compute Cook's distance
+    # Fit model to ALL data to compute Cook's distance
     slr_model_all = SimpleLinearRegression()
     slr_model_all.fit(X, y)
     cooks_d = cooks_distance(X, y, slr_model_all)
 
-    # Plot Cook's distance before removing outliers
+    # Plot Cook's distance
     threshold = 4 / len(X)
     plot_cooks_distance(cooks_d, threshold=threshold, filename="cooks_distance_slr.png")
 
-    # Remove outliers using Cook's distance
+    # Remove outliers
     mask = cooks_d < threshold
     X = X[mask]
     y = y[mask]
@@ -196,10 +168,10 @@ def experiment_predict_global_sales():
     
     print(f"SLR R² score: {slr_score:.4f}")
     print(f"SLR Coefficients: {slr_model.weights}")
+    
     # Plot SLR fit and predictions
     plot_slr_fit(X_test, y_test, slr_model, filename="slr_fit.png")
     plot_predictions(y_test, slr_predictions, "SLR: Actual vs Predicted Global Sales", filename="slr_actual_vs_predicted.png")
-    # Only print results
 
 def experiment_sales_by_year():
     """
@@ -214,12 +186,12 @@ def experiment_sales_by_year():
     X = df_numeric[feature_cols].values
     y = df_numeric['Global_Sales'].values
     
-    # Fit model to all data to compute Cook's distance
+    # Fit model to ALL data to compute Cook's distance
     slr_model_all = SimpleLinearRegression()
     slr_model_all.fit(X, y)
     cooks_d = cooks_distance(X, y, slr_model_all)
 
-    # Remove outliers using Cook's distance
+    # Remove outliers 
     threshold = 4 / len(X)
     mask = cooks_d < threshold
     X = X[mask]
@@ -235,7 +207,6 @@ def experiment_sales_by_year():
     X_test_scaled = (X_test - X_train_mean) / X_train_std
 
     # --- ANN Model ---
-    # Comment: Use a simple ANN with 1 hidden layer of 8 neurons
     input_dim = X_train_scaled.shape[1]
     output_dim = 1
 
@@ -246,8 +217,10 @@ def experiment_sales_by_year():
         ann_pred = ann_model.predict(X_test_scaled).flatten()
         ann_score = 1 - np.sum((ann_pred - y_test) ** 2) / np.sum((y_test - np.mean(y_test)) ** 2)
         print(f"ANN (1 hidden, {hidden_dim} neurons) R² score: {ann_score:.4f}")
+        
         # Plot actual vs predicted sales
         plot_predictions(y_test, ann_pred, f"ANN (1 hidden, {hidden_dim} neurons): Actual vs Predicted Global Sales", filename=f"ann1_hidden{hidden_dim}_actual_vs_predicted.png")
+        
         # Plot training loss curve
         plot_ann_loss(ann_model, filename=f"ann1_hidden{hidden_dim}_loss_curve.png")
 
@@ -262,6 +235,7 @@ def experiment_sales_by_year():
         plot_predictions(y_test, ann_pred, f"ANN (2 hidden, {hidden_dim1}-{hidden_dim2} neurons): Actual vs Predicted Global Sales", filename=f"ann2_hidden{hidden_dim1}_{hidden_dim2}_actual_vs_predicted.png")
         # Plot training loss curve
         plot_ann_loss(ann_model, filename=f"ann2_hidden{hidden_dim1}_{hidden_dim2}_loss_curve.png")
+
 
 if __name__ == "__main__":
     print("Experiment 1: Predicting Global Sales from NA Sales")
