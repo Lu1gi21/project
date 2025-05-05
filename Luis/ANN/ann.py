@@ -107,7 +107,7 @@ class SimpleNeuralNetwork:
     def predict(self, X):
         # just run a forward pass
         X = np.array(X)
-        z1 = X.dot(self.w1) + self.b1
+        z1 = X.dot(self.w1) + self.b1 
         a1 = self.sigmoid(z1)
         if self.h2 is not None:
             z2 = a1.dot(self.w2) + self.b2

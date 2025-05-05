@@ -1,7 +1,9 @@
 import numpy as np
 
 class SimpleLinearRegression:
-    
+    """
+    A simple linear regression model.
+    """
     def __init__(self):
         self.weights = None
         

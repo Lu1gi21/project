@@ -34,13 +34,15 @@ def train_test_split(X, y, test_size=0.2, random_state=None):
 
 def cooks_distance(X, y, model):
     """
-    Calculate Cook's distance for each observation in a simple linear regression.
+    Calculate Cook's distance.
     """
     # Add intercept
     X_b = np.c_[np.ones((X.shape[0], 1)), X]
     y_pred = model.predict(X)
     residuals = y - y_pred
+    # Mean squared error
     mse = np.mean(residuals ** 2)
+    
     # Hat matrix diagonal
     H = X_b @ np.linalg.inv(X_b.T @ X_b) @ X_b.T
     leverage = np.diag(H)
