@@ -3,7 +3,7 @@ import numpy as np
 
 class SimpleNeuralNetwork:
     """
-    A simple feedforward neural net with one or two hidden layers.
+    A simple neural net with one or two hidden layers.
     """
     def __init__(self, n_in, h1, n_out, h2=None, lr=0.01, epochs=1000):
         # store the size of the optional second hidden layer
