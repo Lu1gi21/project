@@ -64,14 +64,14 @@ def plot_pca(df, label_column='Genre', title='PCA of Nintendo Game Features by G
         alpha=0.7,
         edgecolor=None
     )
-    plt.title("2D PCA Projection of Games\nPC1 = Publisher, PC2 = Year/Sales (Color = Genre)")
+    plt.title("2D PCA Projection of Games\nPC1 = Publisher, PC2 = Year/Sales (Color = Genre)\n")
     plt.xlabel("PC1: Strong influence of Publisher (encoded + normalized)")
     plt.ylabel("PC2: Variation by Release Year (minor sales influence)")
     plt.legend(title='Genre', bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
     plt.show()
 
-def experiment_knn_nintendo_genre_prediction(k=3):
+def knn_genre_prediction(k=3):
     df = load_clean_vgsales()
     #df = df[df['Publisher'] == 'Nintendo']
 
@@ -126,4 +126,4 @@ def experiment_knn_nintendo_genre_prediction(k=3):
     plot_pca(df_plot, label_column='Genre')
 
 if __name__ == "__main__":
-    experiment_knn_nintendo_genre_prediction(k=10)
+    knn_genre_prediction(k=10)
