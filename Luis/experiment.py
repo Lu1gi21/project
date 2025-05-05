@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Add project directory to path for imports
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Import models and data utilities
+# Import models and utilities
 from Luis.SLR.slr import SimpleLinearRegression
 from Data.data import load_clean_vgsales, get_numeric_vgsales_columns
 from Luis.ANN.ann import SimpleNeuralNetwork
@@ -81,11 +81,9 @@ def plot_slr_fit(X, y, model, filename=None):
     plt.close()
 
 def plot_ann_loss(ann_model, filename=None):
-    """
-    Plot the loss curve for the ANN during training.
-    """
+
     plt.figure(figsize=(8, 6))
-    plt.plot(ann_model.cost_history)
+    plt.plot(ann_model.losses)
     plt.xlabel('Epoch')
     plt.ylabel('MSE Loss')
     plt.title('ANN Training Loss Curve')
@@ -94,29 +92,10 @@ def plot_ann_loss(ann_model, filename=None):
         plt.savefig(f"Luis/plots/{filename}")
     plt.close()
 
-def plot_feature_importance(weights, feature_names, filename=None):
-    """
-    Plot the absolute value of input-to-hidden weights as feature importance.
-    """
-    importance = np.abs(weights).mean(axis=1)
-    plt.figure(figsize=(8, 6))
-    plt.bar(feature_names, importance)
-    plt.xlabel('Feature')
-    plt.ylabel('Average |Weight|')
-    plt.title('Feature Importance (ANN Input Layer)')
-    plt.tight_layout()
-    if filename:
-        plt.savefig(f"Luis/plots/{filename}")
-    plt.close()
 
 def plot_cooks_distance(cooks_d, threshold=None, filename=None):
     """
     Plot Cook's distance for each observation in SLR.
-
-    Args:
-        cooks_d (np.ndarray): Array of Cook's distance values.
-        threshold (float, optional): Threshold for identifying influential points.
-        filename (str, optional): Filename to save the plot.
     """
     plt.figure(figsize=(10, 6))
     plt.stem(np.arange(len(cooks_d)), cooks_d, markerfmt='o', basefmt=" ")
@@ -212,7 +191,7 @@ def experiment_sales_by_year():
 
     # One hidden layer
     for hidden_dim in [4, 16, 32, 64]:
-        ann_model = SimpleNeuralNetwork(input_dim, hidden_dim, output_dim, hidden_dim2=None, learning_rate=0.01, n_iterations=1000)
+        ann_model = SimpleNeuralNetwork(input_dim, hidden_dim, output_dim, h2=None, lr=0.01, epochs=1000)
         ann_model.fit(X_train_scaled, y_train)
         ann_pred = ann_model.predict(X_test_scaled).flatten()
         ann_score = 1 - np.sum((ann_pred - y_test) ** 2) / np.sum((y_test - np.mean(y_test)) ** 2)
@@ -226,7 +205,7 @@ def experiment_sales_by_year():
 
     # Two hidden layers
     for hidden_dim1, hidden_dim2 in [(16, 8), (32, 16), (64, 32)]:
-        ann_model = SimpleNeuralNetwork(input_dim, hidden_dim1, output_dim, hidden_dim2=hidden_dim2, learning_rate=0.01, n_iterations=1000)
+        ann_model = SimpleNeuralNetwork(input_dim, hidden_dim1, output_dim, h2=hidden_dim2, lr=0.01, epochs=1000)
         ann_model.fit(X_train_scaled, y_train)
         ann_pred = ann_model.predict(X_test_scaled).flatten()
         ann_score = 1 - np.sum((ann_pred - y_test) ** 2) / np.sum((y_test - np.mean(y_test)) ** 2)

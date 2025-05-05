@@ -4,6 +4,6 @@
 # run
 
 ```
-python -m Name.Algorythm.filename
+python Luis/experiment.py
 
  ```
